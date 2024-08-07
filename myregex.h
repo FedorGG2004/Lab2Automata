@@ -1,6 +1,9 @@
 #include <string>
+#include <iterator>
+#include <vector>
 #include "dfa.h"
 #include "Parser.h"
+
 void printVectorOfSets(const std::vector<std::unordered_set<int>>& vec) {
     for (const auto& set : vec) {
         std::cout << "{ ";
@@ -88,18 +91,31 @@ public:
     //     std::cout << dfa.to_string();
     // }
 
-    void difference()
+    void difference(std::string inp1, std::string inp2)
     {
-        std::string input2 = R"(abcd|bac)";s
-        Parser parser(input2);
+        //copy2 - copy1 = copy1(redacted) 
+        Parser parser(kpath);
+        parser.setINPUT(inp2);
         parser.create_token_queue();
         parser.create_postfix_token_queue();
         Tree t1;
         t1.init(parser.output_queue);
         DFA completeDfa(t1.alphabet, t1);
         completeDfa.post_processing();
-        // completeDfa.compile();
-        std::vector<std::string> alphabet2=dfa.alphabet;
+        //
+        completeDfa.compile();
+        //
+        Parser copy(kpath);
+        copy.setINPUT(inp1);
+        copy.create_token_queue();
+        copy.create_postfix_token_queue();
+        Tree t2;
+        t2.init(copy.output_queue);
+        DFA copyDfa(t2.alphabet, t2);
+        copyDfa.post_processing();
+        copyDfa.compile();
+
+        std::vector<std::string> alphabet2=copyDfa.alphabet;
         for(auto& a: completeDfa.alphabet){
             auto it = std::find(alphabet2.begin(), alphabet2.end(), a);
             if(it == alphabet2.end()){
@@ -110,16 +126,16 @@ public:
         //     std::cout<<a<<" ";
         // }
         for(auto& al: alphabet2){
-            auto it = std::find(dfa.alphabet.begin(), dfa.alphabet.end(), al);
-            if(it == dfa.alphabet.end()){
+            auto it = std::find(copyDfa.alphabet.begin(), copyDfa.alphabet.end(), al);
+            if(it == copyDfa.alphabet.end()){
                 int id = 0;
-                for(auto& st: dfa.states){
+                for(auto& st: copyDfa.states){
                     if(st.error==true){
                         id=st.id;
                     }
                 }
                 std::cout<<id << "  ";
-                for(auto& st: dfa.states){
+                for(auto& st: copyDfa.states){
                     st.transitions[al] = {id};
                 }
             }
@@ -144,12 +160,13 @@ public:
         //std::cout << completeDfa.to_string();
         // std::cout << dfa.to_string();
         // std::cout << completeDfa.to_string();
-        dfa.createDifference(completeDfa, alphabet2);
-        dfa.post_processing();
-        std::cout << dfa.to_string();
+        copyDfa.createDifference(completeDfa, alphabet2);
+        copyDfa.post_processing();
+        copyDfa.compile();
+        std::cout << copyDfa.to_string();
 
     }
-    void addition()
+    void addition(std::string inp)
     {
         Parser parser(kpath);
   
@@ -171,12 +188,22 @@ public:
         DFA completeDfa(t1.alphabet, t1);
         completeDfa.post_processing();
         completeDfa.compile();
+
+        Parser copy(kpath);
+        copy.setINPUT(inp);
+        copy.create_token_queue();
+        copy.create_postfix_token_queue();
+        Tree t2;
+        t2.init(copy.output_queue);
+        DFA copyDfa(t2.alphabet, t2);
+        copyDfa.post_processing();
+        copyDfa.compile();
         //std::cout << "min complete dfa" << std::endl;
         //std::cout << completeDfa.to_string();
-
-        dfa.createAddition(completeDfa);
-        dfa.post_processing();
-        std::cout << dfa.to_string();
+        copyDfa.createAddition(completeDfa);
+        copyDfa.post_processing();
+        copyDfa.compile();
+        std::cout << copyDfa.to_string();
 
     }
 
@@ -247,7 +274,7 @@ public:
     //     else
     //         return "";
     // }
-    std::vector<std::string> find_all(const std::string& str)
+    void find_all(const std::string& str)
     {
         std::vector<std::string> matches;
         for (int j=0; j < str.size(); j++) {
@@ -255,10 +282,13 @@ public:
                 std::string sub = str.substr(j, i);
                 if (match(sub)) {
                     matches.push_back(sub);
+                    j=j+sub.size();
                 }
             }
         }
-        return matches;
+        std::vector<std::string> res = matches;
+        auto vo = res;
+        std::copy(vo.begin(), vo.end(), std::ostream_iterator<std::string>{std::cout, "\n"});
     }
     // std::string find_all(const std::string& str)
     // {
